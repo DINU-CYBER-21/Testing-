@@ -7,10 +7,10 @@ const nodemailer = require('nodemailer');
 const config = require('../config');
 
 // Create transporter
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
     host: config.EMAIL_HOST,
     port: config.EMAIL_PORT,
-    secure: false,
+    secure: false, // true = port 465, false = other ports (587, etc.)
     auth: {
         user: config.EMAIL_USER,
         pass: config.EMAIL_PASS
@@ -108,7 +108,6 @@ const sendWelcomeEmail = async (email, firstName, verificationToken) => {
                         <a href="${config.COPYRIGHT.GITHUB}">GitHub</a> |
                         <a href="mailto:support@queen-mini.com">Support</a>
                     </div>
-                    <p><small>© ${config.COPYRIGHT.YEAR} ${config.COPYRIGHT.COMPANY} | Owner: ${config.COPYRIGHT.OWNER}</small></p>
                 </div>
             </div>
         </body>
@@ -118,67 +117,10 @@ const sendWelcomeEmail = async (email, firstName, verificationToken) => {
 
     try {
         await transporter.sendMail(mailOptions);
-        console.log(`Welcome email sent to ${email}`);
+        console.log('✅ Welcome email sent to', email);
     } catch (error) {
-        console.error('Failed to send welcome email:', error);
-        throw error;
+        console.error('❌ Error sending email:', error);
     }
 };
 
-// Send password reset email
-const sendPasswordResetEmail = async (email, resetToken) => {
-    const resetUrl = `${process.env.BASE_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
-    
-    const mailOptions = {
-        from: config.EMAIL_FROM,
-        to: email,
-        subject: '🔐 QUEEN-MINI - Password Reset Request',
-        html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Password Reset - QUEEN-MINI</title>
-            <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-                .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
-                .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center; color: white; }
-                .content { padding: 40px 30px; text-align: center; }
-                .reset-btn { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 15px 40px; border-radius: 50px; font-weight: 600; font-size: 1.1em; margin: 20px 0; }
-                .footer { background: #f8f9ff; padding: 30px; text-align: center; color: #666; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1>🔐 Password Reset</h1>
-                </div>
-                <div class="content">
-                    <h2>Reset Your Password</h2>
-                    <p>You requested a password reset for your QUEEN-MINI account.</p>
-                    <a href="${resetUrl}" class="reset-btn">Reset Password</a>
-                    <p><small>This link will expire in 1 hour. If you didn't request this, please ignore this email.</small></p>
-                </div>
-                <div class="footer">
-                    <p>© ${config.COPYRIGHT.YEAR} ${config.COPYRIGHT.COMPANY}</p>
-                </div>
-            </div>
-        </body>
-        </html>
-        `
-    };
-
-    try {
-        await transporter.sendMail(mailOptions);
-        console.log(`Password reset email sent to ${email}`);
-    } catch (error) {
-        console.error('Failed to send password reset email:', error);
-        throw error;
-    }
-};
-
-module.exports = {
-    sendWelcomeEmail,
-    sendPasswordResetEmail
-};
+module.exports = { sendWelcomeEmail };
