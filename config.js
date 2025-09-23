@@ -23,10 +23,10 @@ module.exports = {
     JWT_EXPIRES_IN: '7d',
     
     // Email Configuration (Nodemailer)
-    EMAIL_HOST: 'smtp.gmail.com',
+    EMAIL_HOST: 'dinuwa281@gmail.com',
     EMAIL_PORT: 587,
-    EMAIL_USER: 'your-email@gmail.com',
-    EMAIL_PASS: 'your-app-password',
+    EMAIL_USER: 'dinuwa281@gmail.com',
+    EMAIL_PASS: 'Dinuwa-#@1H',
     EMAIL_FROM: 'QUEEN-MINI <noreply@queen-mini.com>',
     
     // WhatsApp Bot Configuration
