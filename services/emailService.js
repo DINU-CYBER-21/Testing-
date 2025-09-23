@@ -4,19 +4,16 @@
  */
 
 const nodemailer = require('nodemailer');
-const config = require('../config');
 
-// Create transporter
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
     host: config.EMAIL_HOST,
     port: config.EMAIL_PORT,
-    secure: false,
+    secure: false, // true if port 465, false if port 587
     auth: {
         user: config.EMAIL_USER,
         pass: config.EMAIL_PASS
     }
 });
-
 // Send welcome email
 const sendWelcomeEmail = async (email, firstName, verificationToken) => {
     const verificationUrl = `${process.env.BASE_URL || 'http://localhost:3000'}/api/auth/verify-email/${verificationToken}`;
