@@ -9,7 +9,6 @@ const { v4: uuidv4 } = require('uuid');
 const { Op } = require('sequelize');
 const { User } = require('../database/models');
 const { authLimiter } = require('../middleware/rateLimiter');
-const { sendWelcomeEmail } = require('../services/emailService');
 const config = require('../config');
 
 const router = express.Router();
