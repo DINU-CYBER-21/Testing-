@@ -2,6 +2,7 @@
  * Email Service
  * Copyright © 2025 DarkSide Developers
  */
+const config = require('../config');
 
 const nodemailer = require('nodemailer');
 
