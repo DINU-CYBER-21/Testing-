@@ -8,6 +8,7 @@ const path = require('path');
 const chalk = require('chalk');
 const fs = require('fs-extra');
 
+const restrt = require('./ecosystem.config');
 const config = require('./config');
 const { connectDatabase } = require('./database/connection');
 const { generalLimiter } = require('./middleware/rateLimiter');
