@@ -1,10 +1,3 @@
-/**
- * QUEEN-MINI Main Server
- * Copyright © 2025 DarkSide Developers
- * Owner: DarkWinzo
- * GitHub: https://github.com/DarkWinzo
- */
-
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -13,6 +6,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const path = require('path');
 const chalk = require('chalk');
+const fs = require('fs-extra');
 
 const config = require('./config');
 const { connectDatabase } = require('./database/connection');
@@ -27,10 +21,7 @@ const userRoutes = require('./routes/user');
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
+    cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
 // Global middleware
@@ -64,36 +55,63 @@ app.get('/', (req, res) => {
 
 // 404 handler
 app.use('*', (req, res) => {
-    res.status(404).json({
-        success: false,
-        message: 'Route not found'
-    });
+    res.status(404).json({ success: false, message: 'Route not found' });
 });
 
 // Global error handler
 app.use((error, req, res, next) => {
     console.error(chalk.red('Server Error:'), error);
-    res.status(500).json({
-        success: false,
-        message: 'Internal server error'
-    });
+    res.status(500).json({ success: false, message: 'Internal server error' });
 });
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
     console.log(chalk.blue('Client connected:'), socket.id);
-    
     socket.on('disconnect', () => {
         console.log(chalk.yellow('Client disconnected:'), socket.id);
     });
 });
 
-// Start server
+// ------------------- Bot Session Restore & Auto-Save -------------------
+const SESSION_FILE = path.join(__dirname, 'sessions.json');
+global.botSession = {};
+
+// Load session at startup
+const loadSession = async () => {
+    try {
+        if (await fs.pathExists(SESSION_FILE)) {
+            global.botSession = await fs.readJson(SESSION_FILE);
+            console.log(chalk.green('✅ Bot session restored from file.'));
+        } else {
+            console.log(chalk.yellow('⚠️ No previous session found, starting fresh.'));
+        }
+    } catch (err) {
+        console.error(chalk.red('❌ Failed to load session:'), err);
+    }
+};
+
+// Save session periodically
+const saveSession = async () => {
+    try {
+        await fs.writeJson(SESSION_FILE, global.botSession);
+        console.log(chalk.blue('💾 Bot session saved.'));
+    } catch (err) {
+        console.error(chalk.red('❌ Failed to save session:'), err);
+    }
+};
+
+// Auto-save every 5 minutes
+setInterval(saveSession, 5 * 60 * 1000);
+
+// ------------------- Start server -------------------
 const startServer = async () => {
     try {
         // Connect to database
         await connectDatabase();
-        
+
+        // Load previous bot session
+        await loadSession();
+
         // Start server
         const PORT = config.PORT;
         server.listen(PORT, () => {
@@ -119,22 +137,22 @@ const startServer = async () => {
     }
 };
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-    console.log(chalk.yellow('SIGTERM received, shutting down gracefully...'));
+// Graceful shutdown + save session
+const gracefulShutdown = async (signal) => {
+    console.log(chalk.yellow(`${signal} received, saving session and shutting down gracefully...`));
+    await saveSession();
     server.close(() => {
         console.log(chalk.green('Server closed'));
         process.exit(0);
     });
-});
+};
 
-process.on('SIGINT', () => {
-    console.log(chalk.yellow('SIGINT received, shutting down gracefully...'));
-    server.close(() => {
-        console.log(chalk.green('Server closed'));
-        process.exit(0);
-    });
-});
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// ------------------- PM2 Auto Restart -------------------
+// 50 minutes interval auto-restart handled via PM2 cron_restart in ecosystem.config.js
+// (No code change needed here; session restore ensures bot reconnects automatically)
 
 startServer();
 
