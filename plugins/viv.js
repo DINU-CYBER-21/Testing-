@@ -1,74 +1,67 @@
-const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
-const Crypto = require("crypto");
 const { cmd } = require("../command");
-const {sleep} = require('../lib/functions')
 
 cmd({
-    pattern: "vv",
-    desc: "Bypass ViewOnce and resend media",
-    category: "media",
-    react: "🧚‍♂️",
-    filename: __filename
-},
-async (conn, mek, m, { from, quoted, reply }) => {
-    try {
-        if (!quoted) {
-            return reply("⚠️ කරුණාකර ViewOnce image හෝ Video එකක් quote කරන්න!");
-        }
+  pattern: "vv",
+  alias: ["vv6", "vv", "❤️", "🤠", "😀", "🥹", "😇", "👍", "🤩", "😍"],
+  react: '🪀',
+  desc: "Forwards quoted message to your DM",
+  category: "utility",
+  filename: __filename
+}, async (client, message, match, { from }) => {
+  try {
+    const botNumber = client.user.id.split(":")[0] + "@s.whatsapp.net";
 
-        const quot = mek.msg.contextInfo.quotedMessage;
-        const cap = quot?.msg?.caption || '';
-        let mediaType = '';
-
-        if (quoted.type.includes("image")) {
-            mediaType = "jpg";
-        } else if (quoted.type.includes("video")) {
-            mediaType = "mp4";
-        } else {
-            mediaType = "mp3";
-        }
-
-        const tempFileName = `Golden_Queen_MD_${Crypto.randomBytes(8).toString('hex')}.${mediaType}`;
-        const tempFilePath = path.resolve(tempFileName);
-
-        // Download media
-        const mediaBuffer = await quoted.download();
-        if (!mediaBuffer) {
-            return reply("⚠️ Failed to download the media. Please try again.");
-        }
-
-        fs.writeFileSync(tempFilePath, mediaBuffer);
-
-        if (!fs.existsSync(tempFilePath)) {
-            return reply("⚠️ Media file could not be found after download.");
-        }
-
-        if (quoted.type.includes("image")) {
-            await conn.sendMessage(from, {
-                image: { url: tempFilePath },
-                caption: cap + `> 𝐏ᴏᴡᴇʀᴅ ʙʏ 𝐅ʀᴇᴇᴅᴏᴍ ❗`
-            }, { quoted: mek });
-        } else if (quoted.type.includes("video")) {
-            await conn.sendMessage(from, {
-                video: { url: tempFilePath },
-                caption: cap + `> 𝐏ᴏᴡᴇʀᴅ ʙʏ 𝐅ʀᴇᴇᴅᴏᴍ ❗`,
-                mimetype: "video/mp4"
-            }, { quoted: mek });
-        } else {
-            await conn.sendMessage(from, {
-                audio: { url: tempFilePath },
-                mimetype: "audio/mp4",
-                ptt: true
-            }, { quoted: mek });
-        }
-
-        // Remove temp file
-        await fs.unlinkSync(tempFilePath);
-
-    } catch (error) {
-        console.log(error);
-        reply("⚠️ Error occurred while processing ViewOnce media.");
+    if (message.sender !== botNumber) {
+      return await client.sendMessage(from, {
+        text: "❌ You are not authorized to use this command."
+      }, { quoted: message });
     }
+
+    if (!match.quoted) {
+      return await client.sendMessage(from, {
+        text: "*🍁 Please reply to a message!*"
+      }, { quoted: message });
+    }
+
+    const buffer = await match.quoted.download();
+    const mtype = match.quoted.mtype;
+    const options = { quoted: message };
+
+    let messageContent = {};
+    switch (mtype) {
+      case "imageMessage":
+        messageContent = {
+          image: buffer,
+          caption: match.quoted.text || '',
+          mimetype: match.quoted.mimetype || "image/jpeg"
+        };
+        break;
+      case "videoMessage":
+        messageContent = {
+          video: buffer,
+          caption: match.quoted.text || '',
+          mimetype: match.quoted.mimetype || "video/mp4"
+        };
+        break;
+      case "audioMessage":
+        messageContent = {
+          audio: buffer,
+          mimetype: "audio/mp4",
+          ptt: match.quoted.ptt || false
+        };
+        break;
+      default:
+        return await client.sendMessage(from, {
+          text: "❌ Only image, video, and audio messages are supported"
+        }, { quoted: message });
+    }
+
+    await client.sendMessage(message.sender, messageContent, options); // Send to user's DM
+    // Confirmation message removed
+  } catch (error) {
+    console.error("Forward Error:", error);
+    await client.sendMessage(from, {
+      text: "❌ Error forwarding message:\n" + error.message
+    }, { quoted: message });
+  }
 });
