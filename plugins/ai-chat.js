@@ -1,76 +1,17 @@
-const { cmd } = require('../command');
-const axios = require('axios');
+/**
+ * DeepSeek Command Plugin
+ * Copyright © 2025 DarkSide Developers
+ */
 
-cmd({
-    pattern: "ai",
-    alias: ["bot", "dj", "gpt", "gpt4", "bing"],
-    desc: "Chat with an AI model",
-    category: "ai",
-    react: "🤖",
-    filename: __filename
-},
-async (conn, mek, m, { from, args, q, reply, react }) => {
+const axios = require("axios");
+
+module.exports = async (socket, msg, bot, { q, react, reply }) => {
     try {
-        if (!q) return reply("Please provide a message for the AI.\nExample: `.ai Hello`");
-
-        const apiUrl = `https://lance-frank-asta.onrender.com/api/gpt?q=${encodeURIComponent(q)}`;
-        const { data } = await axios.get(apiUrl);
-
-        if (!data || !data.message) {
-            await react("❌");
-            return reply("AI failed to respond. Please try again later.");
+        if (!q) {
+            return reply("Please provide a message for DeepSeek AI.\nExample: `.deepseek Hello`");
         }
 
-        await reply(`🤖 *AI Response:*\n\n${data.message}`);
-        await react("✅");
-    } catch (e) {
-        console.error("Error in AI command:", e);
-        await react("❌");
-        reply("An error occurred while communicating with the AI.");
-    }
-});
-
-cmd({
-    pattern: "openai",
-    alias: ["chatgpt", "gpt3", "open-gpt"],
-    desc: "Chat with OpenAI",
-    category: "ai",
-    react: "🧠",
-    filename: __filename
-},
-async (conn, mek, m, { from, args, q, reply, react }) => {
-    try {
-        if (!q) return reply("Please provide a message for OpenAI.\nExample: `.openai Hello`");
-
-        const apiUrl = `https://vapis.my.id/api/openai?q=${encodeURIComponent(q)}`;
-        const { data } = await axios.get(apiUrl);
-
-        if (!data || !data.result) {
-            await react("❌");
-            return reply("OpenAI failed to respond. Please try again later.");
-        }
-
-        await reply(`🧠 *OpenAI Response:*\n\n${data.result}`);
-        await react("✅");
-    } catch (e) {
-        console.error("Error in OpenAI command:", e);
-        await react("❌");
-        reply("An error occurred while communicating with OpenAI.");
-    }
-});
-
-cmd({
-    pattern: "deepseek",
-    alias: ["deep", "seekai"],
-    desc: "Chat with DeepSeek AI",
-    category: "ai",
-    react: "🧠",
-    filename: __filename
-},
-async (conn, mek, m, { from, args, q, reply, react }) => {
-    try {
-        if (!q) return reply("Please provide a message for DeepSeek AI.\nExample: `.deepseek Hello`");
-
+        // API Call
         const apiUrl = `https://api.ryzendesu.vip/api/ai/deepseek?text=${encodeURIComponent(q)}`;
         const { data } = await axios.get(apiUrl);
 
@@ -79,13 +20,43 @@ async (conn, mek, m, { from, args, q, reply, react }) => {
             return reply("DeepSeek AI failed to respond. Please try again later.");
         }
 
-        await reply(`🧠 *DeepSeek AI Response:*\n\n${data.answer}`);
+        // Format response
+        const deepMessage = `
+╭─────────────────────╮
+│    🧠 DEEPSEEK AI    │
+│       RESPONSE        │
+╰─────────────────────╯
+
+💬 *Your Question:* 
+${q}
+
+🧠 *DeepSeek Response:* 
+${data.answer}
+
+*© 2025 DarkSide Developers*
+*Owner: DarkWinzo*
+        `.trim();
+
+        await socket.sendMessage(
+            msg.key.remoteJid,
+            { text: deepMessage },
+            { quoted: msg }
+        );
+
         await react("✅");
-    } catch (e) {
-        console.error("Error in DeepSeek AI command:", e);
+
+        // Update statistics
+        const stats = bot.statistics || {};
+        stats.deepseekQueries = (stats.deepseekQueries || 0) + 1;
+        await bot.update({ statistics: stats });
+
+    } catch (error) {
+        console.error("DeepSeek command error:", error);
+        await socket.sendMessage(
+            msg.key.remoteJid,
+            { text: "❌ Error executing DeepSeek AI command" },
+            { quoted: msg }
+        );
         await react("❌");
-        reply("An error occurred while communicating with DeepSeek AI.");
     }
-});
-
-
+};
